@@ -1,3 +1,8 @@
+var url_dataset = "https://raw.githubusercontent.com/ondata/elezioni-politiche-2022/main/liste/processing/CAMERA_ITALIA_20220925_pluri.csv";
+var data ;
+function cambiaUrlDataset(url){
+  url_dataset = url;
+}
 
 function creaIstogrammaAnniTot(data){
     var margin = {top: 10, right: 30, bottom: 30, left: 60},
@@ -85,7 +90,7 @@ function creaIstogrammaAnniTot(data){
                        )
      .style("top", (event.pageY - 2)+"px")
   .style("left", (event.pageX + 2)+"px")
-   .style("opacity", 0.9)
+   
 
           .style("transform", "translateX(60px)");
   }).on('mouseout', (d,idx) => {
@@ -96,38 +101,7 @@ function creaIstogrammaAnniTot(data){
          
   
 }
-
-
-function resetView (data){
-  d3.select("svg").remove();
-  d3.select("svg").remove();
-  creaIstogrammaAnniTot(data);
-}
-
-
-
-document.addEventListener('DOMContentLoaded',function(){
- (function($){
-  var data;
-    $.ajax({ //leggo i dati dalla fonte ondata e li converto in un json
-      type: "GET",  
-      url: "https://raw.githubusercontent.com/ondata/elezioni-politiche-2022/main/liste/processing/CAMERA_ITALIA_20220925_pluri.csv",
-       async: false,
-      dataType: "text",       
-      success: function(response)  
-      {
-       // data = $.csv.toArrays(response);
-      //  console.log(data);
-        var limit = 10;
-    var res = response.slice(0, 5000000000);
-        var items = $.csv.toObjects(res);
-        var dataJ = JSON.stringify(items);
-        data = JSON.parse(dataJ);
-        //console.log(Object.keys(data).length);
-       
-      }   
-    });
-   
+function setupFiltri(){
    //setup dei filtri
    //creo lista di tutti i collegi
    var collegi = new Set();
@@ -168,7 +142,7 @@ document.addEventListener('DOMContentLoaded',function(){
    
    var partiti = new Set();
    partiti.add("TUTTE LE LISTE");
-   //console.log(data[0])
+  // console.log(data[0])
    for (var i = 0; i < data.length; i++) {
         if (typeof data[i] !== 'undefined'){
         var r = data[i].desc_lista;
@@ -204,8 +178,8 @@ document.addEventListener('DOMContentLoaded',function(){
    //creo maschio/femmina/entrambi
    var genere = new Set();
    genere.add("TUTTI I CANDIDATI");
-   genere.add("DONNE");
-   genere.add("UOMINI");
+   genere.add("F");
+   genere.add("M");
    
     //creo dropdown genere
    d3.select("#myform")
@@ -244,30 +218,35 @@ append("input")
         .attr("id", "CercaFiltri")
         .on("click", (d) => { 
       //collegi
-      var valore = d3.select("#dropDown-collegi").node().value 
+      var valoreCollegi = d3.select("#dropDown-collegi").node().value 
         var data_copia;
-        if(valore == "TUTTI I COLLEGI"){
+     /*   if(valoreCollegi == "TUTTI I COLLEGI"){
           data_copia = data;
         } else {
           data_copia = data.filter(function(d){ return d.desc_ente == valore })
-        }
+        }*/
       //lista
       var valoreLista = d3.select("#dropDown-partiti").node().value 
         
-        if(valoreLista == "TUTTE LE LISTE"){
-          
-        } else {
-          data_copia = data_copia.filter(function(d){ return d.desc_lista == valoreLista })
-        }
+     
       //genere
           var valoreGenere = d3.select("#dropDown-genere").node().value 
         
-        if(valoreGenere == "TUTTI I CANDIDATI"){
-          
-        } else {
-          data_copia = data_copia.filter(function(d){ return d.desc_lista == valoreLista })
-        }
-      
+       //filtro
+         data_copia = data;
+          data_copia = data_copia.filter(function(d){ 
+            //console.log("Ciao");
+            if(valoreGenere == "TUTTI I CANDIDATI" && valoreLista == "TUTTE LE LISTE" && valoreCollegi == "TUTTI I COLLEGI") return data_copia;
+            if(valoreGenere == "TUTTI I CANDIDATI" && valoreLista == "TUTTE LE LISTE" && valoreCollegi != "TUTTI I COLLEGI") return d.desc_ente == valoreCollegi ;
+                if(valoreGenere == "TUTTI I CANDIDATI" && valoreLista != "TUTTE LE LISTE" && valoreCollegi == "TUTTI I COLLEGI") return d.desc_lista == valoreLista ;
+            if(valoreGenere != "TUTTI I CANDIDATI" && valoreLista == "TUTTE LE LISTE" && valoreCollegi == "TUTTI I COLLEGI") return d.sesso == valoreGenere ;
+              if(valoreGenere != "TUTTI I CANDIDATI" && valoreLista != "TUTTE LE LISTE" && valoreCollegi == "TUTTI I COLLEGI") return d.sesso == valoreGenere && d.desc_lista==valoreLista ;
+                          if(valoreGenere != "TUTTI I CANDIDATI" && valoreLista == "TUTTE LE LISTE" && valoreCollegi != "TUTTI I COLLEGI") return d.sesso == valoreGenere && d.desc_ente==valoreCollegi ;
+                          if(valoreGenere == "TUTTI I CANDIDATI" && valoreLista != "TUTTE LE LISTE" && valoreCollegi != "TUTTI I COLLEGI") return d.desc_ente == valoreCollegi && d.desc_lista==valoreLista ;
+                          if(valoreGenere != "TUTTI I CANDIDATI" && valoreLista != "TUTTE LE LISTE" && valoreCollegi != "TUTTI I COLLEGI") return d.sesso == valoreGenere && d.desc_lista==valoreLista && d.desc_ente==valoreCollegi;
+            console.log("TI SEI PERSA UN PEZZOOOOOO");
+            return d.desc_ente == valore ;
+                                 })
       resetView(data_copia)                        
                                    })
    
@@ -275,7 +254,140 @@ append("input")
 
    
    //fine setup dei filtri
+  
+}
+function creaListaCandidati(data){
+ // console.log("uu");
+    var candidati = [];
    
+ //  console.log(data[0])
+   for (var i = 0; i < data.length; i++) {
+        if (typeof data[i] !== 'undefined'){
+        var r = {
+          "lista": data[i].desc_lista,
+          "nome": data[i].nome_c,
+          "cognome": data[i].cogn_c,
+          "collegio": data[i].desc_ente,
+          "wiki": "https://it.wikipedia.org/wiki/" + data[i].nome_c + "_" + data[i].cogn_c
+        };
+        candidati.push(r) ;
+      }
+   }
+  
+  /*d3.select("#myform")
+  .append("br");*/
+  
+  
+  
+  d3.select("#myform")//.list
+    .selectAll("li")
+    .data(candidati)
+  .enter().append("li")
+    .html(function(d){
+    if(d.lista == undefined){
+      return  d.nome + " " + d.cognome + "<a href src=" + d.wiki + "> Wikipedia </a>";
+    }
+    
+    return d.lista + " - " + d.nome + " " + d.cognome + "<a href src=" + d.wiki + "> Wikipedia </a>";});
+  
+  
+}
+
+function resetView (data){
+  d3.select("svg").remove();
+  d3.select("svg").remove();
+  d3.selectAll("li").remove();
+  creaIstogrammaAnniTot(data);
+  creaListaCandidati(data);
+}
+
+function elaboraDataset($){
+    $.ajax({ //leggo i dati dalla fonte ondata e li converto in un json
+      type: "GET",  
+      url: url_dataset,
+       async: false,
+      dataType: "text",       
+      success: function(response)  
+      {
+       // data = $.csv.toArrays(response);
+      //  console.log(data);
+        var limit = 10;
+    var res = response.slice(0, 5000000000);
+        
+        var items = $.csv.toObjects(res);
+        var dataJ = JSON.stringify(items);
+        //console.log(dataJ)
+        data = JSON.parse(dataJ);
+        //console.log(Object.keys(data).length);
+       
+      }   
+    });
+  
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+ (function($){
+   elaboraDataset($);
+  //var data = 
+   setupFiltri();
+   //setup pulsanti scelta dataset
+    d3.select("#cambio_dataset").
+append("input")
+        .attr("type", "button")
+        .attr("value", "CAMERA - Collegi Plurinominali")
+        .attr("id", "pulsante_pluri")
+        .attr("align-button", "center")
+        .on("click", (d) => {  
+      cambiaUrlDataset("https://raw.githubusercontent.com/ondata/elezioni-politiche-2022/main/liste/processing/CAMERA_ITALIA_20220925_pluri.csv")
+        d3.select("#title").
+        text("Elezioni 2022 - Candidati alla CAMERA - Collegi plurinominali")
+      elaboraDataset($);
+      resetView(data);
+     // console.log("hhhhh");
+    });
+   
+   d3.select("#cambio_dataset").
+append("input")
+        .attr("type", "button")
+        .attr("value", "CAMERA - Collegi Uninominali")
+        .attr("id", "pulsante_uni")
+        .attr("align-button", "center")
+        .on("click", (d) => {  
+      cambiaUrlDataset("https://raw.githubusercontent.com/ondata/elezioni-politiche-2022/main/liste/processing/CAMERA_ITALIA_20220925_uni.csv")
+       d3.select("#title").
+        text("Elezioni 2022 - Candidati alla CAMERA - Collegi uninominali")
+      elaboraDataset($);
+      resetView(data);
+      //console.log("zz");
+    });
+   d3.select("#cambio_dataset").
+append("input")
+        .attr("type", "button")
+        .attr("value", "SENATO - Collegi Plurinominali")
+        .attr("id", "pulsante_pluri_sen")
+        
+        .on("click", (d) => {  
+      cambiaUrlDataset("https://raw.githubusercontent.com/ondata/elezioni-politiche-2022/main/liste/processing/SENATO_ITALIA_20220925_pluri.csv")
+       d3.select("#title").
+        text("Elezioni 2022 - Candidati al SENATO - Collegi plurinominali")
+      elaboraDataset($);
+      resetView(data);
+      //console.log("zz");
+    });
+      d3.select("#cambio_dataset").
+append("input")
+        .attr("type", "button")
+        .attr("value", "SENATO - Collegi Uninominali")
+        .attr("id", "pulsante_uni_sen")
+        
+        .on("click", (d) => {  
+      cambiaUrlDataset("https://raw.githubusercontent.com/ondata/elezioni-politiche-2022/main/liste/processing/SENATO_ITALIA_20220925_uni.csv")
+        d3.select("#title").
+        text("Elezioni 2022 - Candidati al SENATO - Collegi uninominali")
+      elaboraDataset($);
+      resetView(data);
+      //console.log("zz");
+    });
    creaIstogrammaAnniTot(data)
    
    // qui inizio a costruire la pagina
